@@ -8,7 +8,7 @@ const CLOUD_FUNCTION_URL = 'https://us-central1-tests-abe52.cloudfunctions.net/a
 async function sendToCloudFunction(notification) {
   try {
     console.log('📤 Enviando notificación a Cloud Function:', notification);
-    
+
     const response = await fetch(CLOUD_FUNCTION_URL, {
       method: 'POST',
       headers: {
@@ -27,7 +27,7 @@ async function sendToCloudFunction(notification) {
       statusText: response.statusText,
       data: result
     });
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error al enviar a Cloud Function:', {
@@ -53,6 +53,12 @@ async function startConsumer() {
           console.log('📥 Notificación recibida de RabbitMQ:', notification);
 
           
+          if (!notification.token) {
+            console.error('❌ Notificación sin token:', notification);
+            throw new Error('Token no encontrado en la notificación');
+          }
+
+        
           const cloudFunctionResponse = await sendToCloudFunction(notification);
           console.log('🔁 Procesamiento completado para notificación:', {
             rabbitMQId: msg.properties.messageId,
@@ -84,7 +90,6 @@ process.on('SIGINT', async () => {
   console.log('\n🔴 Deteniendo consumer...');
   process.exit(0);
 });
-
 
 console.log(' Iniciando servicio de notificaciones...');
 startConsumer();
