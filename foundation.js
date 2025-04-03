@@ -52,13 +52,11 @@ async function startConsumer() {
           const notification = JSON.parse(msg.content.toString());
           console.log('📥 Notificación recibida de RabbitMQ:', notification);
 
-          
           if (!notification.token) {
             console.error('❌ Notificación sin token:', notification);
             throw new Error('Token no encontrado en la notificación');
           }
 
-        
           const cloudFunctionResponse = await sendToCloudFunction(notification);
           console.log('🔁 Procesamiento completado para notificación:', {
             rabbitMQId: msg.properties.messageId,
