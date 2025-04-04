@@ -4,6 +4,7 @@ import fetch from 'node-fetch';
 const RABBITMQ_URL = 'amqp://ale:ale123@ec2-54-167-194-141.compute-1.amazonaws.com:5672';
 const NOTIFICATION_QUEUE = 'notificaciones';
 const CLOUD_FUNCTION_URL = 'https://us-central1-tests-abe52.cloudfunctions.net/api/send-notification';
+const EMAIL_FUNCTION_URL = 'https://us-central1-tests-abe52.cloudfunctions.net/api/send-email';
 
 async function sendToCloudFunction(notification) {
   try {
@@ -38,6 +39,39 @@ async function sendToCloudFunction(notification) {
   }
 }
 
+async function sendEmailNotification(emailData) {
+  try {
+    console.log('📤 Enviando email a Cloud Function:', emailData);
+
+    const response = await fetch(EMAIL_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(emailData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Email enviado exitosamente:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: result
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ Error al enviar email:', {
+      message: error.message,
+      emailData: emailData
+    });
+    throw error;
+  }
+}
+
 async function startConsumer() {
   try {
     const conn = await amqp.connect(RABBITMQ_URL);
@@ -58,6 +92,13 @@ async function startConsumer() {
           }
 
           const cloudFunctionResponse = await sendToCloudFunction(notification);
+          
+          await sendEmailNotification({
+            to: "233380@ids.upchiapas.edu.mx",
+            text: notification.body,
+            subject: notification.title
+          });
+          
           console.log('🔁 Procesamiento completado para notificación:', {
             rabbitMQId: msg.properties.messageId,
             cloudFunctionResponse: cloudFunctionResponse
